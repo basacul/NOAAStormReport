@@ -1,0 +1,72 @@
+---
+title: "NOAA_Storm_Report.Rmd"
+author: "Lucas Antelo"
+date: "24 septembre 2015"
+output: html_document
+---
+
+#Consequences and Implications of Storms in the U.S. between 1950 and 11/2011
+
+1. Must have at least on figure conatining a plot
+2. No more than THREE figures (may have multiple plots in them)
+
+##Synopsis (max 10 complete sentences)
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This data analysis involves the storm database of the U.S. National Oceanic and Atmospheric Administration, where major storms and weather events in the U.S. including when and where they occur as well as estimates of any fatalities, injuries and property damage from 1950 till November 2011 are included.
+
+In this report we want to answer the following two questions for across the United States:
+1.  Which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+2. Which types of events have the greatest economic consequences?
+
+##Data Processing
+DESCRIBE HO THE DATA WERE LOADED INTO R AND PROCESSED FOR ANALYSIS
+
+The database is downloaded from cloudfront.net and read as .bz2 file. The documenation is downloaded separately as a .pdf file including the definitions of the variables of the storm database. Both files are loaded into the current workspace folder.
+
+###Loading and Reading in the Storm Database
+```{r download}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(fileUrl, destfile = "stormdatabase.csv.bz2")
+downloadedTimeData <- Sys.Date()
+
+data <- read.csv(bzfile("stormdatabase.csv.bz2"), stringsAsFactors = FALSE)
+
+#fileUrlDocumentation <- "http://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf"
+#download.file(fileUrlDocumentation, destfile = "documentation.pdf")
+#downloadedTimeDocumentation <- Sys.Date()
+```
+###Processing the Storm Database
+```{r dataOverview}
+str(data)
+
+summary(data)
+```
+
+For this analysis we are interested in the event types and their respective damages to the economy and public health. Consequently the Storm database is reduced to the following variables:
+1. EventType
+2. PropertyDamage ($US)
+3. CropDamage ($US)
+4. Injuries
+5. Fatalities
+
+For the PropertyDamage and CropDamage we need to adapt the values as they have respective variables describing if we need to multiply it by 1000 for K, by one million for M, etc.
+
+```{r processing}
+subset <- data[, c("EVTYPE", )]
+```
+##Results
+
+###Entire U.S. analysis
+1.  Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful     with respect to population health?
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+
+```{r}
+
+```
+
+
