@@ -1,72 +1,216 @@
 ---
-title: "NOAA_Storm_Report.Rmd"
+title: "Consequences and Implications of Storms in the U.S. between 1950 and 2011"
 author: "basacul"
-date: "24 septembre 2015"
+date: "24/9/2015"
 output: html_document
 ---
 
-#Consequences and Implications of Storms in the U.S. between 1950 and 11/2011
+# NOAA Storm Report: Synopsis
 
-1. Must have at least on figure conatining a plot
-2. No more than THREE figures (may have multiple plots in them)
+Weather phenomenons can cause both public health and economic problems to our society and result in fatalities, injuries, and property damage. A better understanding of weather phenomenons and their effects allows us to approach these problems more efficiently.
 
-##Synopsis (max 10 complete sentences)
-
-Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
-
-This data analysis involves the storm database of the U.S. National Oceanic and Atmospheric Administration, where major storms and weather events in the U.S. including when and where they occur as well as estimates of any fatalities, injuries and property damage from 1950 till November 2011 are included.
+This data analysis uses the storm database of the U.S. National Oceanic and Atmospheric Administration. The database includes major storms and weather events in the U.S. as well as when and where they occur and moreover estimates of any fatalities, injuries and property damage from 1950 till November 2011.
 
 In this report we want to answer the following two questions for across the United States:
-1.  Which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+1. Which types of events are most harmful with respect to population health?
 
 2. Which types of events have the greatest economic consequences?
 
-##Data Processing
-DESCRIBE HO THE DATA WERE LOADED INTO R AND PROCESSED FOR ANALYSIS
 
+
+# Data Processing
 The database is downloaded from cloudfront.net and read as .bz2 file. The documenation is downloaded separately as a .pdf file including the definitions of the variables of the storm database. Both files are loaded into the current workspace folder.
 
-###Loading and Reading in the Storm Database
-```{r download}
-fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+##Loading and Reading in the Storm Database
+
+```{r download, cache = TRUE}
+fileUrl <- "http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 download.file(fileUrl, destfile = "stormdatabase.csv.bz2")
 downloadedTimeData <- Sys.Date()
 
+fileUrlDocumentation <- "http://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf"
+download.file(fileUrlDocumentation, destfile = "documentation.pdf")
+downloadedTimeDocumentation <- Sys.Date()
+
 data <- read.csv(bzfile("stormdatabase.csv.bz2"), stringsAsFactors = FALSE)
-
-#fileUrlDocumentation <- "http://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf"
-#download.file(fileUrlDocumentation, destfile = "documentation.pdf")
-#downloadedTimeDocumentation <- Sys.Date()
 ```
-###Processing the Storm Database
-```{r dataOverview}
+
+##Processing the Storm Database
+
+### 1. Overview
+
+We look at the structure of the downloaded data as we need to discern the necessary variables for our analysis.
+
+```{r dataOverview, cache=TRUE}
 str(data)
-
-summary(data)
 ```
 
-For this analysis we are interested in the event types and their respective damages to the economy and public health. Consequently the Storm database is reduced to the following variables:
-1. EventType
-2. PropertyDamage ($US)
-3. CropDamage ($US)
-4. Injuries
-5. Fatalities
+For this analysis we are interested in the event types and their respective damages to the economy and public health. Consequently the storm database is reduced to the following variables:
 
-For the PropertyDamage and CropDamage we need to adapt the values as they have respective variables describing if we need to multiply it by 1000 for K, by one million for M, etc.
+1. EVTYPE : Event Type
+2. PROPDMG: Property Damage (US Dollar)
+3. PEOPDMGEXP: Multiplier
+4. CROPDMG: Crop Damage (US Dollar)
+5. CROPDMGEXP: Multiplier
+6. INJURIES: Injuries
+7. FATALITIES: Fatalities
 
-```{r processing}
-subset <- data[, c("EVTYPE", )]
+For the property damage and crop damage variables we need to adapt their values as they possess a column with supplementary information in their respective PROPDMGEXP and CROPDMGEXP variables. They describe the multiplier we need to use. H and h represent 100, K and k 1000, M and m a million, B and b a billion and furthermore a number from 0 to 9 representing the power of ten. Unfortunately the documentation does not describe all their respective values such that I had to do some research on google and coursera in order to figure out their meaning.
+
+I decided to split the data into four subsets:  
+
+- property damage
+- crop damage
+- injuries
+- fatalities
+
+### 2. Processing the property damage subset
+
+We create a subset by selecting only the event type, property damage and its respective supplementary column PROPDMGEXP. First we analyse the different values for PROPDMGEXP in order to adapt the transformation which is done separately for each value - it took too long with a for loop. Some transformations are done with help of the dplyr package.
+
+```{r property, cache=TRUE, message=FALSE}
+library(dplyr)
+
+property <- data %>% select(EVTYPE, PROPDMGEXP, PROPDMG)
+
+#range of values in PROPDMGEXP
+unique(property$PROPDMGEXP)
+
+#each value for PROPDMGEXP is tested separately and replaced by a numeric value
+property[property$PROPDMGEXP == "", "PROPDMGEXP"] <- 0
+property[property$PROPDMGEXP == "?", "PROPDMGEXP"] <- 0
+property[property$PROPDMGEXP == "-", "PROPDMGEXP"] <- 0
+property[property$PROPDMGEXP == "0", "PROPDMGEXP"] <- 1
+property[property$PROPDMGEXP == "+", "PROPDMGEXP"] <- 1
+property[property$PROPDMGEXP == "1", "PROPDMGEXP"] <- 10
+property[property$PROPDMGEXP == "2", "PROPDMGEXP"] <- 100
+property[property$PROPDMGEXP == "3", "PROPDMGEXP"] <- 1000
+property[property$PROPDMGEXP == "4", "PROPDMGEXP"] <- 10000
+property[property$PROPDMGEXP == "5", "PROPDMGEXP"] <- 100000
+property[property$PROPDMGEXP == "6", "PROPDMGEXP"] <- 1000000
+property[property$PROPDMGEXP == "7", "PROPDMGEXP"] <- 10000000
+property[property$PROPDMGEXP == "8", "PROPDMGEXP"] <- 100000000
+property[property$PROPDMGEXP == "h", "PROPDMGEXP"] <- 100
+property[property$PROPDMGEXP == "H", "PROPDMGEXP"] <- 100
+property[property$PROPDMGEXP == "K", "PROPDMGEXP"] <- 1000
+property[property$PROPDMGEXP == "m", "PROPDMGEXP"] <- 1000000
+property[property$PROPDMGEXP == "M", "PROPDMGEXP"] <- 1000000
+property[property$PROPDMGEXP == "B", "PROPDMGEXP"] <- 1000000000
+
+property$PROPDMGEXP <- as.numeric(property$PROPDMGEXP)
+
+#multiplication of the values property damage and its multiplier PROPDMGEXP
+property$PROPDMG <- property[, "PROPDMG"] * property[,"PROPDMGEXP"]
+
+propertyFinished <- property %>% 
+                    select(EVTYPE, PROPDMG) %>% 
+                    group_by(EVTYPE) %>% 
+                    summarize(total = sum(PROPDMG))
+
+propertyOrdered <- propertyFinished[order(-propertyFinished$total),]
+
+#any missing values
+sum(!complete.cases(propertyOrdered))
 ```
-##Results
 
-###Entire U.S. analysis
-1.  Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful     with respect to population health?
+### 3. Processing the crop damage subset
 
-2. Across the United States, which types of events have the greatest economic consequences?
+For the crop damage we proceed simliarly as described above.
 
+```{r crop, cache=TRUE, message=FALSE}
+crop <- data %>% select(EVTYPE, CROPDMGEXP, CROPDMG)
 
-```{r}
+unique(crop$CROPDMGEXP)
 
+crop[crop$CROPDMGEXP == "", "CROPDMGEXP"] <- 0
+crop[crop$CROPDMGEXP == "?", "CROPDMGEXP"] <- 0
+crop[crop$CROPDMGEXP == "0", "CROPDMGEXP"] <- 1
+crop[crop$CROPDMGEXP == "2", "CROPDMGEXP"] <- 100
+crop[crop$CROPDMGEXP == "k", "CROPDMGEXP"] <- 1000
+crop[crop$CROPDMGEXP == "K", "CROPDMGEXP"] <- 1000
+crop[crop$CROPDMGEXP == "m", "CROPDMGEXP"] <- 1000000
+crop[crop$CROPDMGEXP == "M", "CROPDMGEXP"] <- 1000000
+crop[crop$CROPDMGEXP == "B", "CROPDMGEXP"] <- 1000000000
+
+crop$CROPDMGEXP <- as.numeric(crop$CROPDMGEXP)
+
+#multiplication of the values crop damage and its multiplier CROPDMGEXP
+crop$CROPDMG <- crop[,"CROPDMG"] * crop[,"CROPDMGEXP"]
+
+cropFinished <- crop %>% 
+                select(EVTYPE, CROPDMG) %>% 
+                group_by(EVTYPE) %>% 
+                summarize(total = sum(CROPDMG))
+
+cropOrdered <- cropFinished[order(-cropFinished$total),]
+
+sum(!complete.cases(cropOrdered))
+```
+
+### 4. Processing the injuries and fatalities subsets
+
+For injuries and fatalities we take two separate subsets accordingly. The amount are grouped to their respective event types and finally summarized by taking the sum of their number of injuries or fatalities.
+
+```{r injuries, cache=TRUE, message=FALSE}
+injuries <- data %>% 
+            select(EVTYPE, INJURIES) %>% 
+            group_by(EVTYPE) %>% 
+            summarize(total = sum(INJURIES))
+
+injuriesOrdered <- injuries[order(-injuries$total),]
+
+sum(!complete.cases(injuriesOrdered))
+```
+
+```{r fatalities, cache=TRUE, message=FALSE}
+fatalities <-   data %>% 
+                select(EVTYPE, FATALITIES) %>% 
+                group_by(EVTYPE) %>% 
+                summarize(total = sum(FATALITIES))
+
+fatalitiesOrdered <- fatalities[order(-fatalities$total),]
+
+sum(!complete.cases(fatalitiesOrdered))
 ```
 
 
+# Results
+
+The four subsets consist of several different event types. In order to accomplish a more realisitc approach the 10 most devastating weather phenomenons with the highest impact in their respective fields across the U.S. are plotted and explained below.
+
+## 1. Across the United States, which types of events are most harmful with respect to population health?
+
+```{r health, cache=TRUE, message=FALSE}
+top10injuries <- injuriesOrdered[1:10,]
+top10fatalities <- fatalitiesOrdered[1:10,]
+
+par(mfrow = c(1,2), mar = c(12,4,2,1), oma = c(0,0,2,0), cex = 0.7)
+barplot(top10injuries$total, las = 3, names.arg = top10injuries$EVTYPE, col = "orange", 
+        main = "Related To Injuries" , ylab = "Number Of Injuries Caused")
+barplot(top10fatalities$total, las = 3, names.arg = top10fatalities$EVTYPE, col = "red", 
+        main = "Related To Fatalities", ylab = "Number Of Fatalities Caused")
+title(main = "THE 10 MOST DANGEROUS WEATHER PHENOMENONS", outer = TRUE)
+```
+
+#### Description
+This figure shows that __tornados__ are incredibly dangerous weather phenomenons and cause the major amount of injuries and deaths across the event types. Tornados are difficult to control and it remains unclear if weather countermeasures could be available in the next decade that could prevent or weaken their perilous effects. Another approach consists in better informing the population on how to react in such events in order to prevent further injuries or deaths. Otherwise, if these were caused by defects or deficiencies in the construction establishing better standards are more appropriate. Finally, it is interesting to see that excessive heat accounts for quite a high number of deaths. Further investigation needs to be done, if this phenomenon is progressing the last years and what the exact causes of death were, especially if these people had further diseases or not.
+
+## 2. Across the United States, which types of events have the greatest economic consequences?
+
+```{r economy, cache=TRUE, message=FALSE}
+top10property <- propertyOrdered[1:10,]
+top10crop <- cropOrdered[1:10,]
+
+par(mfrow=c(1,2), mar = c(12,4,2,1), oma = c(0,0,3,0), cex = 0.6)
+barplot(top10property$total, las = 3, names.arg = top10property$EVTYPE, col = "brown",
+        main = "Property Damage", ylab = "US Dollars")
+barplot(top10crop$total, las = 3, names.arg = top10crop$EVTYPE, col = "darkgreen",
+        main = "Crop Damage", ylab = "US Dollars")
+title(main = "THE 10 MOST DEVASTATING WEATHER PHENOMENONS", outer = TRUE)
+```
+
+#### Description
+In this figure related to property and crop damage, __floods__ have the biggest impact on the amount of property damage. Floods account for more damage than hurricanes/typhons AND tornados together. Appropriate countermeasures consist in constructing efficient dams in critical hotspots where floods happen regularly. If these were caused next to wild rivers, rectifying them would be another solution. Unfortunately, it remains unclear if these phenomenons happen frequently or if the major amount of damage is caused by rare extreme events like for example Hurricane Katrina.
+
+From an agricultural perspective, we see that droughts are causing the biggest impact on crop damage. Droughts are progressivly becoming an issue which is due to the climate change as well as deforestation. Countermeasures are more difficult to establish as usable water becomes more and more scarce and a rise of demand by other end customers restricts the possibilites of water redistribution. One approach would consist in forestation and more efficient irrigation techniques. Weather control could be an appropriate measure to reduce the agricultural damage but it still remains highly experimental without any knowledge of long-term effects.
