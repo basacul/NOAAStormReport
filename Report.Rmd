@@ -1,6 +1,6 @@
 ---
 title: "NOAA_Storm_Report.Rmd"
-author: "Lucas Antelo"
+author: "basacul"
 date: "24 septembre 2015"
 output: html_document
 ---
